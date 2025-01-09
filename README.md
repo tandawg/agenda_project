@@ -45,5 +45,5 @@
 1. Соберите Docker-образ: docker build -t agenda-project .
 2. Запустите контейнер: команда c монтированием файла базы данных: 
     docker run -d -p 7540:7540 -v "$(pwd)/scheduler.db:/data/scheduler.db" agenda-project (команда c монтированием файла базы данных)
-    docker run -d -p 7540:7540 go-final-project (команда без монтирования файла базы данных)
+    docker run -d -p 7540:7540 agenda-project (команда без монтирования файла базы данных)
 3. Откройте браузер и перейдите по адресу: http://localhost:7540/
