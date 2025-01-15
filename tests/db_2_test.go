@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
-	_ "modernc.org/sqlite"
 	"github.com/stretchr/testify/assert"
+	_ "modernc.org/sqlite"
 )
 
 type Task struct {
