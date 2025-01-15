@@ -1,13 +1,17 @@
-package main
+package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"time"
+
+	"github.com/tandawg/agenda_project/internal/models"
+	"github.com/tandawg/agenda_project/internal/services"
 )
 
 // Обработчик для обновления задачи в базе данных
-func PutTaskHandler(w http.ResponseWriter, r *http.Request) {
+func PutTaskHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	// Проверяем, что запрос выполнен методом PUT
 	if r.Method != http.MethodPut {
 		http.Error(w, `{"error": "метод не поддерживается"}`, http.StatusMethodNotAllowed)
@@ -19,7 +23,7 @@ func PutTaskHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Десериализуем JSON из тела запроса в структуру Task
 	decoder := json.NewDecoder(r.Body)
-	var task Task
+	var task models.Task
 	if err := decoder.Decode(&task); err != nil {
 		// Если произошла ошибка десериализации, возвращаем ошибку 400
 		http.Error(w, `{"error":"ошибка десериализации JSON"}`, http.StatusBadRequest)
@@ -39,13 +43,13 @@ func PutTaskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Получаем текущую дату в формате YYYYMMDD
-	nowDate := time.Now().Format("20060102")
+	nowDate := time.Now().Format(models.DateFormat)
 	// Если дата задачи не указана или указана как "today", устанавливаем текущую дату
 	if task.Date == "" || task.Date == "today" {
 		task.Date = nowDate
 	} else {
 		// Пробуем преобразовать строку с датой в формат time.Time
-		parsedDate, err := time.Parse("20060102", task.Date)
+		parsedDate, err := time.Parse(models.DateFormat, task.Date)
 		if err != nil {
 			http.Error(w, `{"error":"некорректный формат даты"}`, http.StatusBadRequest)
 			return
@@ -57,7 +61,7 @@ func PutTaskHandler(w http.ResponseWriter, r *http.Request) {
 				task.Repeat = nowDate
 			} else {
 				// Если повторение указано, вычисляем следующую дату по правилу повторения
-				nextDate, err := NextDate(time.Now(), task.Date, task.Repeat)
+				nextDate, err := services.NextDate(time.Now(), task.Date, task.Repeat)
 				if err != nil {
 					// Если правило повторения некорректно, возвращаем ошибку 400
 					http.Error(w, `{"error":"некорректное правило повторения"}`, http.StatusBadRequest)
@@ -72,7 +76,7 @@ func PutTaskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	// Проверяем правило повторения
 	if task.Repeat != "" {
-		_, err := NextDate(time.Now(), task.Date, task.Repeat)
+		_, err := services.NextDate(time.Now(), task.Date, task.Repeat)
 		if err != nil {
 			http.Error(w, `{"error":"некорректное правило повторения"}`, http.StatusBadRequest)
 			return
@@ -80,7 +84,7 @@ func PutTaskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	// Обновляем данные задачи в базе данных
 	query := "UPDATE scheduler SET date = ?, title = ?, comment = ?, repeat = ? WHERE id = ?"
-	res, err := DB.Exec(query, task.Date, task.Title, task.Comment, task.Repeat, task.ID)
+	res, err := db.Exec(query, task.Date, task.Title, task.Comment, task.Repeat, task.ID)
 	if err != nil {
 		// Если произошла ошибка при обновлении базы данных, возвращаем ошибку 500
 		http.Error(w, `{"error": "ошибка обновления задачи в базе данных"}`, http.StatusInternalServerError)
@@ -99,7 +103,11 @@ func PutTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// возвращаем успешный пустой JSON
+	// Возвращаем успешный пустой JSON
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("{}"))
+	if _, err := w.Write([]byte("{}")); err != nil {
+		// Обрабатываем ошибку
+		http.Error(w, `{"error": "ошибка при отправке ответа"}`, http.StatusInternalServerError)
+		return
+	}
 }

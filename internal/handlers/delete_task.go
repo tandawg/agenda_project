@@ -1,13 +1,14 @@
-package main
+package handlers
 
 import (
+	"database/sql"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 )
 
 // Обработчик для удаления задачи из базы данных
-func DeleteTaskHandler(w http.ResponseWriter, r *http.Request) {
+func DeleteTaskHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	// Проверяем, что запрос выполнен методом DELETE
 	if r.Method != http.MethodDelete {
 		http.Error(w, `{"error": "метод не поддерживается"}`, http.StatusMethodNotAllowed)
@@ -31,7 +32,7 @@ func DeleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Подготавливаем запрос на удаление задачи по её id
 	deleteQuery := "DELETE FROM scheduler WHERE id = ?"
-	res, err := DB.Exec(deleteQuery, idTask)
+	res, err := db.Exec(deleteQuery, idTask)
 	if err != nil {
 		http.Error(w, `{"error": "ошибка удаления задачи"}`, http.StatusInternalServerError)
 		return

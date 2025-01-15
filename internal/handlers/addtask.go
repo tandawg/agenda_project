@@ -1,10 +1,14 @@
-package main
+package handlers
 
 import (
-	"net/http"
+	"database/sql"
 	"encoding/json"
-	"time"
+	"net/http"
 	"strconv"
+	"time"
+
+	"github.com/tandawg/agenda_project/internal/models"
+	"github.com/tandawg/agenda_project/internal/services"
 )
 
 // Объявление структуры для ответа
@@ -14,7 +18,7 @@ type Response struct {
 }
 
 // Обработчик для добавления новой задачи
-func AddTaskHandler(w http.ResponseWriter, r *http.Request) {
+func AddTaskHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	// Проверяем, что запрос выполнен методом POST
 	if r.Method != http.MethodPost {
 		http.Error(w, "метод не поддерживается", http.StatusMethodNotAllowed)
@@ -24,8 +28,8 @@ func AddTaskHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
 	// Декодируем JSON из тела запроса
-	var task TaskCreate
-	
+	var task models.Task
+
 	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(Response{Error: "ошибка десериализации"})
@@ -38,12 +42,12 @@ func AddTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Получаем текущую дату
-	nowDate := time.Now().Format("20060102")
+	nowDate := time.Now().Format(models.DateFormat)
 	if task.Date == "" || task.Date == "today" {
 		task.Date = nowDate
 	} else {
 		// Преобразуем дату в правильный формат
-		parsedDate, err := time.Parse("20060102", task.Date)
+		parsedDate, err := time.Parse(models.DateFormat, task.Date)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			json.NewEncoder(w).Encode(Response{Error: "некорректный формат даты"})
@@ -55,7 +59,7 @@ func AddTaskHandler(w http.ResponseWriter, r *http.Request) {
 				task.Date = nowDate
 			} else {
 				// Вычисляем следующую дату выполнения
-				nextDate, err := NextDate(time.Now(), task.Date, task.Repeat)
+				nextDate, err := services.NextDate(time.Now(), task.Date, task.Repeat)
 				if err != nil {
 					w.WriteHeader(http.StatusBadRequest)
 					json.NewEncoder(w).Encode(Response{Error: "ошибка при вычислении следующей даты"})
@@ -70,16 +74,12 @@ func AddTaskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	// Проверяем правило повторения
 	if task.Repeat != "" {
-		_, err := NextDate(time.Now(), task.Date, task.Repeat)
+		_, err := services.NextDate(time.Now(), task.Date, task.Repeat)
 		if err != nil {
 			http.Error(w, `{"error":"Некорректное правило повторения"}`, http.StatusBadRequest)
 			return
 		}
 	}
-
-	// Добавление задачи в базу данных
-	db := createDatabase() // Используем уже существующую функцию для создания/получения базы данных
-	defer db.Close()
 
 	query := "INSERT INTO scheduler (date, title, comment, repeat) VALUES (?, ?, ?, ?)"
 	res, err := db.Exec(query, task.Date, task.Title, task.Comment, task.Repeat)
@@ -91,7 +91,7 @@ func AddTaskHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Получаем id добавленной задачи
 	id, err := res.LastInsertId()
-	
+
 	idResp := strconv.Itoa(int(id))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)

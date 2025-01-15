@@ -1,5 +1,5 @@
 # Этап сборки
-FROM golang:1.22 AS builder
+FROM golang:1.22-alpine AS builder
 
 # Устанавливаем рабочую директорию
 WORKDIR /app
@@ -14,7 +14,7 @@ RUN go mod download
 RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o main .
 
 # Финальный образ
-FROM ubuntu:latest
+FROM alpine:latest
 
 # Устанавливаем рабочую директорию
 WORKDIR /app
@@ -30,7 +30,7 @@ ENV TODO_PORT=7540
 ENV TODO_DBFILE=/data/scheduler.db
 
 # Указываем порт веб-сервера
-EXPOSE 7540
+EXPOSE $TODO_PORT
 
 # Команда для запуска веб-сервера
 CMD ["/app/main"]

@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"database/sql"
@@ -7,10 +7,11 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/tandawg/agenda_project/internal/models"
 )
 
 // Обработчик для получения информации о задаче по её id
-func GetTaskHandler(w http.ResponseWriter, r *http.Request) {
+func GetTaskHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	// Проверяем, что запрос выполнен методом GET
 	if r.Method != http.MethodGet {
 		http.Error(w, `{"error": "метод не поддерживается"}`, http.StatusMethodNotAllowed)
@@ -34,10 +35,10 @@ func GetTaskHandler(w http.ResponseWriter, r *http.Request) {
 
 	// SQL-запрос для поиска задачи в базе данных
 	query := "SELECT id, date, title, comment, repeat FROM scheduler WHERE id = ?"
-	row := DB.QueryRow(query, idTask)
+	row := db.QueryRow(query, idTask)
 
 	// Переменная для хранения данных найденной задачи
-	var task Task
+	var task models.Task
 	if err := row.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			// Если задача не найдена, возвращаем соответствующий код ошибки

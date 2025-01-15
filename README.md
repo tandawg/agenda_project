@@ -22,7 +22,7 @@
 1. Убедитесь, что у вас установлены Go (версия 1.22 или выше) и SQLite
 2. Склонируйте проект: git clone git@github.com:tandawg/agenda_project.git и далее зайдите в репозиторий cd agenda_project
 3. Убедитесь, что файл scheduler.db находится в корне проекта
-4. Запустите проект: go run .
+4. Запустите проект: go run ./cmd
 5. По умолчанию сервер запускается на порту 7540. Откройте браузер и перейдите по адресу: http://localhost:7540/
 6. Пример файла .env: 
     TODO_PORT=7540 
@@ -45,5 +45,5 @@
 1. Соберите Docker-образ: docker build -t agenda-project .
 2. Запустите контейнер: команда c монтированием файла базы данных: 
     docker run -d -p 7540:7540 -v "$(pwd)/scheduler.db:/data/scheduler.db" agenda-project (команда c монтированием файла базы данных)
-    docker run -d -p 7540:7540 go-final-project (команда без монтирования файла базы данных)
+    docker run -d -p 7540:7540 agenda-project (команда без монтирования файла базы данных)
 3. Откройте браузер и перейдите по адресу: http://localhost:7540/

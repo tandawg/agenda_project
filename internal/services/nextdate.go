@@ -1,16 +1,18 @@
-package main
+package services
 
 import (
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/tandawg/agenda_project/internal/models"
 )
 
 // NextDate рассчитывает следующую дату задачи с учетом правила повторения
 func NextDate(now time.Time, date string, repeat string) (string, error) {
 	// Преобразуем строку с датой задачи в формат time.Time
-	taskDate, err := time.Parse("20060102", date)
+	taskDate, err := time.Parse(models.DateFormat, date)
 	if err != nil {
 		return "", fmt.Errorf("некорректный формат даты: %s", date)
 	}
@@ -52,7 +54,7 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 			}
 		}
 		// Возвращаем следующую дату в формате YYYYMMDD
-		return nextDate.Format("20060102"), nil
+		return nextDate.Format(models.DateFormat), nil
 
 	case "y": // Повторение в годах
 		// Добавляем один год к начальной дате задачи
@@ -65,7 +67,7 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 		if nextDate.Year() > 2100 {
 			return "", nil
 		}
-		return nextDate.Format("20060102"), nil
+		return nextDate.Format(models.DateFormat), nil
 
 	default:
 		// Если правило повторения не поддерживается, возвращаем пустую строку
@@ -74,7 +76,7 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 }
 
 // Вспомогательная функция, проверяет корректность формата даты в строке (YYYYMMDD)
-func isValidDate(date string) bool {
+func IsValidDate(date string) bool {
 	// Проверяем, что длина строки равна 8 символам
 	if len(date) != 8 {
 		return false
